@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>沉浸式角色聊天</title>
+<style>
+body{background:#17171d;color:#eee;font-family:sans-serif;padding:18px}
+.card{background:#24242d;padding:18px;border-radius:16px;margin:12px 0}
+input,textarea,button{box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #555;background:#30303a;color:white;font-size:16px}
+button{background:#7560d9;border:0}
+#chat{height:45vh;overflow:auto}
+.me{text-align:right;color:#b9a9ff;margin:12px}
+.ai{margin:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h2>🖤 沉浸式角色聊天</h2>
+<div class="card">
+<input id="key" type="password" placeholder="DeepSeek API Key">
+<input id="name" value="周斩乾" placeholder="角色姓名">
+<textarea id="prompt" rows="4">你叫周斩乾，28岁，英俊温雅，是一位沉稳克制的商界掌权人。请沉浸式扮演角色，用自然、简短的中文回复。</textarea>
+<button onclick="save()">保存设置</button>
+</div>
+<div class="card" id="chat"></div>
+<div class="card">
+<input id="msg" placeholder="输入你想说的话">
+<button onclick="send()">发送</button>
+</div>
+<script>
+let history=[];
+function save(){alert('设置已保存到当前页面');}
+async function send(){
+let m=document.getElementById('msg').value.trim();
+let k=document.getElementById('key').value;
+if(!m||!k){alert('请填写消息和 API Key');return;}
+document.getElementById('msg').value='';
+let c=document.getElementById('chat');
+c.innerHTML+='<div class="me">我：'+esc(m)+'</div>';
+history.push({role:'user',content:m});
+try{
+let r=await fetch('https://api.deepseek.com/chat/completions',{
+method:'POST',
+headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:document.getElementById('prompt').value},...history]})
+});
+let d=await r.json();
+if(!r.ok)throw Error(d.error?.message||'请求失败');
+let a=d.choices[0].message.content;
+history.push({role:'assistant',content:a});
+c.innerHTML+='<div class="ai">'+esc(document.getElementById('name').value)+'：'+esc(a)+'</div>';
+}catch(e){c.innerHTML+='<div class="ai">连接失败：'+esc(e.message)+'</div>';}
+c.scrollTop=c.scrollHeight;
+}
+function esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+</script>
+</body>
+</html>
